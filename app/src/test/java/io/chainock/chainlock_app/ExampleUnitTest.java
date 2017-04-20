@@ -1,4 +1,4 @@
-package io.chainock.chainlock_app;
+package io.chainlock.chainlock_app;
 
 import org.junit.Test;
 

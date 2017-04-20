@@ -1,12 +1,13 @@
-package io.chainock.chainlock_app;
+package io.chainlock.chainlock_app;
 
 import android.content.ClipData;
 import android.content.ClipboardManager;
+import android.content.Intent;
+import android.net.Uri;
 import android.os.Bundle;
 import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
-import android.view.View;
 import android.support.design.widget.NavigationView;
+import android.support.design.widget.Snackbar;
 import android.support.v4.view.GravityCompat;
 import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
@@ -14,31 +15,19 @@ import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
 import org.ethereum.geth.Account;
 import org.ethereum.geth.Accounts;
 import org.ethereum.geth.Address;
-import org.ethereum.geth.BigInt;
-import org.ethereum.geth.Block;
-import org.ethereum.geth.BoundContract;
-import org.ethereum.geth.CallMsg;
-import org.ethereum.geth.CallOpts;
-import org.ethereum.geth.ChainConfig;
-import org.ethereum.geth.Context;
-import org.ethereum.geth.Enode;
-import org.ethereum.geth.Enodes;
-import org.ethereum.geth.EthereumClient;
 import org.ethereum.geth.Geth;
-import org.ethereum.geth.AccountManager;
-import org.ethereum.geth.Hash;
-import org.ethereum.geth.Node;
-import org.ethereum.geth.NodeConfig;
-import org.ethereum.geth.PeerInfos;
+import org.ethereum.geth.Header;
+import org.ethereum.geth.KeyStore;
+import org.ethereum.geth.NewHeadHandler;
 import org.ethereum.geth.Subscription;
-import org.ethereum.geth.SyncProgress;
-import org.ethereum.geth.Transaction;
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
@@ -227,69 +216,22 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        TextView box = ((TextView) findViewById(R.id.textbox));
         /**/
+        KeyStore keyStore = Geth.newKeyStore(this.getFilesDir().getAbsolutePath(), Geth.LightScryptN, Geth.LightScryptP);
+        Account myAccount;
         try {
-            Address accountAddress = new Address("0x61478d52c136d357f9a262ba594e7fd7e290ac2f");
-            String accountPassphrase = "hirzel";
-            AccountManager am = Geth.newAccountManager(this.getFilesDir().getAbsolutePath(), Geth.LightScryptN, Geth.LightScryptP);
-            Account a = getAccount(am, accountAddress);
-            if (a == null) {
-                a = am.newAccount(accountPassphrase);
-                ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                String t = new String(am.exportKey(a, "hirzel", "hirzel"));
-                ClipData clip = ClipData.newPlainText("bc identity", t);
-                clipboard.setPrimaryClip(clip);
-                Toast.makeText(this, "copied identity to clipboard", Toast.LENGTH_SHORT).show();
-            }
-
-            NodeConfig conf = Geth.newNodeConfig();
-            Enode enode = Geth.newEnode(MainActivity.enode);
-            Enodes enodes = Geth.newEnodes(1);
-            enodes.set(0, enode);
-            conf.setBootstrapNodes(enodes);
-            conf.setEthereumGenesis(genesis);
-            conf.setEthereumNetworkID(3034);
-            conf.setWhisperEnabled(true);
-            conf.setEthereumEnabled(true);
-            conf.setMaxPeers(5);
-            Node node = Geth.newNode(getFilesDir() + "/.ethereum", conf);
-            node.start();
-            Thread.sleep(4000);
-
-            //BigInt balanceAt = node.getEthereumClient().getBalanceAt(Geth.newContext(), Geth.newAddressFromHex("0x86d2ca00492fec79ffaa83fb1cde776678cc522d"), -1);
-            box.setText(box.getText()+"\nenode: " + node.getNodeInfo().getEnode());
-
-            EthereumClient ethereumClient = node.getEthereumClient();
-            Block block = ethereumClient.getBlockByNumber(Geth.newContext(), -1);
-            box.setText(box.getText() + "\n" + block.getNumber());
-
-
-            /*EthereumClient ethereumClient = Geth.newEthereumClient("http://192.168.43.166:8545");
-            Toast.makeText(this, "le connection éxiste!", Toast.LENGTH_LONG).show();
-
-            Block block = ethereumClient.getBlockByNumber(Geth.newContext(), -1);
-            box.setText(box.getText() + "\n" + block.getNumber());
-
-            BoundContract locker = Geth.bindContract(new Address("0xf3776738429681a0ebf0158078e9ea11827b5dcf"), abi, ethereumClient);
-            CallMsg m = Geth.newCallMsg();
-            m.setFrom(a.getAddress());
-            m.setTo(locker.getAddress());
-            m.setData("owner".getBytes());
-            byte[] result = ethereumClient.callContract(Geth.newContext(), m, 0);
-            Toast.makeText(this, new String(result), Toast.LENGTH_SHORT).show();*/
-
-            //locker.call(Geth.newCallOpts(),Geth.newInterfaces(0),"owner", Geth.newInterfaces(0));
-
-
-        } catch (Exception e) {
-            e.printStackTrace();
-            box.setText(e.getMessage());
+            myAccount = keyStore.getAccounts().get(0);
+            TextView logBox = ((TextView) findViewById(R.id.textbox));
+            EditText addr = ((EditText) findViewById(R.id.addressBox));
+            logBox.setText(logBox.getText() + "\nFound account 0: " + myAccount.getAddress().getHex());
+            addr.setText(myAccount.getAddress().getHex());
+        } catch (Exception e1) {
+            Toast.makeText(this.getApplicationContext(), "Could not find any account. Please create a new one!", Toast.LENGTH_LONG).show();
         }
     }
 
-    private Account getAccount(AccountManager am, Address address) {
-        Accounts as = am.getAccounts();
+    private Account getAccount(KeyStore keyStore, Address address) {
+        Accounts as = keyStore.getAccounts();
         for (long i = 0; i < as.size(); i++) {
             try {
                 Account acc = as.get(i);
@@ -303,16 +245,14 @@ public class MainActivity extends AppCompatActivity
         return null;
     }
 
-    private String newLocalAccount(String pw) {
-        AccountManager am = Geth.newAccountManager(this.getFilesDir().getAbsolutePath(), Geth.LightScryptN, Geth.LightScryptP);
-        Account newAcc = null;
+    private Address newLocalAccount(String pw) {
+        KeyStore keyStore = Geth.newKeyStore(this.getFilesDir().getAbsolutePath(), Geth.LightScryptN, Geth.LightScryptP);
         try {
-            newAcc = am.newAccount(pw);
-            return newAcc.getAddress().getHex();
+            return keyStore.newAccount(pw).getAddress();
         } catch (Exception e) {
             e.printStackTrace();
         }
-        return "";
+        return null;
     }
 
     @Override
@@ -370,5 +310,48 @@ public class MainActivity extends AppCompatActivity
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         drawer.closeDrawer(GravityCompat.START);
         return true;
+    }
+
+    public void doSomething(View view) throws Exception {
+        TextView logBox = ((TextView) findViewById(R.id.textbox));
+        EditText addr = ((EditText) findViewById(R.id.addressBox));
+        EditText pswd = ((EditText) findViewById(R.id.passwordBox));
+
+        Intent i = new Intent(this, ChainlockService.class);
+        i.putExtra("data", "start");
+        startService(i);
+    }
+
+    public void onBtnClicked(View view) throws Exception {
+
+        TextView logBox = ((TextView) findViewById(R.id.textbox));
+        EditText addr = ((EditText) findViewById(R.id.addressBox));
+        EditText pswd = ((EditText) findViewById(R.id.passwordBox));
+
+        String adi = String.valueOf(addr.getText());
+        String pw = String.valueOf(pswd.getText());
+
+        KeyStore keyStore = Geth.newKeyStore(this.getFilesDir().getAbsolutePath(), Geth.LightScryptN, Geth.LightScryptP);
+        Account acc;
+        try {
+            if (!adi.equals("")) {
+                acc = getAccount(keyStore, new Address(adi));
+                keyStore.unlock(acc, pw);
+                Toast.makeText(this, "acc unlocked!", Toast.LENGTH_SHORT).show();
+            }
+        } catch (Exception e1) {
+            if (!pw.equals("")) {
+                Address newAdi = newLocalAccount(pw);
+                addr.setText(newAdi.getHex());
+                Account newAcc = getAccount(keyStore, newAdi);
+                String t = new String(keyStore.exportKey(newAcc, pw, pw));
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("new account", t);
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(this, "copied new identity to clipboard", Toast.LENGTH_SHORT).show();
+            }else{
+                Toast.makeText(this, "please enter pw to unlock account.", Toast.LENGTH_SHORT).show();
+            }
+        }
     }
 }
