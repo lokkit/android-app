@@ -1,5 +1,6 @@
 package io.chainlock.chainlock_app;
 
+import android.app.Activity;
 import android.content.ClipData;
 import android.content.ClipboardManager;
 import android.content.Intent;
@@ -13,6 +14,7 @@ import android.support.v4.widget.DrawerLayout;
 import android.support.v7.app.ActionBarDrawerToggle;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -20,176 +22,23 @@ import android.widget.EditText;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import org.ethereum.geth.Account;
-import org.ethereum.geth.Accounts;
-import org.ethereum.geth.Address;
-import org.ethereum.geth.Geth;
-import org.ethereum.geth.Header;
-import org.ethereum.geth.KeyStore;
-import org.ethereum.geth.NewHeadHandler;
-import org.ethereum.geth.Subscription;
+import com.github.status_im.status_go.cmd.GoInterface;
+import com.github.status_im.status_go.cmd.Statusgo;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.io.File;
+import java.io.IOException;
+import java.util.concurrent.TimeUnit;
+
+import okhttp3.*;
+
 
 public class MainActivity extends AppCompatActivity
         implements NavigationView.OnNavigationItemSelectedListener {
 
-    private static String enode = "enode://15f05de0e9b6b29f4c81c91f3910515ae68e43ef10ac480fe29804aee060fe9e5dddf9a0f1217cd1976aa96365f10b3c3a63c47a13e6be72b58577227a1b72ff@192.168.43.166:30303";
-    private static String genesis = "{    \"nonce\": \"0x0000000000001244234\",    \"timestamp\": \"0x0\",    \"parentHash\": \"0x0000000000000000000000000000000000000000000000000000000000000000\",    \"extraData\": \"0x0\",    \"gasLimit\": \"0x800000000000000000\",    \"difficulty\": \"0x64\",    \"mixhash\": \"0x0000000000000000000000000000000000000000000000000000000000000000\",    \"coinbase\": \"0x3333333333333333333333333333333333333333\",    \"alloc\": {\t\t\"0x86d2ca00492fec79ffaa83fb1cde776678cc522d\": { \"balance\": \"2000000000000000000000000\" }     }}";
-    private static String abi = "[{\n" +
-            "    constant: true,\n" +
-            "    inputs: [],\n" +
-            "    name: 'currentRenter',\n" +
-            "    outputs: [{\n" +
-            "        name: '',\n" +
-            "        type: 'address'\n" +
-            "    }],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    constant: true,\n" +
-            "    inputs: [],\n" +
-            "    name: 'location',\n" +
-            "    outputs: [{\n" +
-            "        name: '',\n" +
-            "        type: 'string'\n" +
-            "    }],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    constant: true,\n" +
-            "    inputs: [{\n" +
-            "        name: 'time',\n" +
-            "        type: 'uint256'\n" +
-            "    }],\n" +
-            "    name: 'occupiedAt',\n" +
-            "    outputs: [{\n" +
-            "        name: '',\n" +
-            "        type: 'bool'\n" +
-            "    }],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    constant: true,\n" +
-            "    inputs: [],\n" +
-            "    name: 'description',\n" +
-            "    outputs: [{\n" +
-            "        name: '',\n" +
-            "        type: 'string'\n" +
-            "    }],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    constant: false,\n" +
-            "    inputs: [{\n" +
-            "        name: 'start',\n" +
-            "        type: 'uint256'\n" +
-            "    }, {\n" +
-            "        name: 'end',\n" +
-            "        type: 'uint256'\n" +
-            "    }],\n" +
-            "    name: 'rent',\n" +
-            "    outputs: [],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    constant: true,\n" +
-            "    inputs: [],\n" +
-            "    name: 'owner',\n" +
-            "    outputs: [{\n" +
-            "        name: '',\n" +
-            "        type: 'address'\n" +
-            "    }],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    constant: true,\n" +
-            "    inputs: [],\n" +
-            "    name: 'locked',\n" +
-            "    outputs: [{\n" +
-            "        name: '',\n" +
-            "        type: 'bool'\n" +
-            "    }],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    constant: true,\n" +
-            "    inputs: [{\n" +
-            "        name: 'start',\n" +
-            "        type: 'uint256'\n" +
-            "    }, {\n" +
-            "        name: 'end',\n" +
-            "        type: 'uint256'\n" +
-            "    }],\n" +
-            "    name: 'occupiedBetween',\n" +
-            "    outputs: [{\n" +
-            "        name: '',\n" +
-            "        type: 'bool'\n" +
-            "    }],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    constant: true,\n" +
-            "    inputs: [],\n" +
-            "    name: 'allReservations',\n" +
-            "    outputs: [{\n" +
-            "        name: '',\n" +
-            "        type: 'uint256[3][]'\n" +
-            "    }],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    constant: true,\n" +
-            "    inputs: [],\n" +
-            "    name: 'pricePerTime',\n" +
-            "    outputs: [{\n" +
-            "        name: '',\n" +
-            "        type: 'uint256'\n" +
-            "    }],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    constant: false,\n" +
-            "    inputs: [{\n" +
-            "        name: 'newOwner',\n" +
-            "        type: 'address'\n" +
-            "    }],\n" +
-            "    name: 'transferOwnership',\n" +
-            "    outputs: [],\n" +
-            "    payable: false,\n" +
-            "    type: 'function'\n" +
-            "}, {\n" +
-            "    inputs: [{\n" +
-            "        name: 'pdescription',\n" +
-            "        type: 'string'\n" +
-            "    }, {\n" +
-            "        name: 'plocation',\n" +
-            "        type: 'string'\n" +
-            "    }, {\n" +
-            "        name: 'ppricePerTime',\n" +
-            "        type: 'uint256'\n" +
-            "    }, {\n" +
-            "        name: 'deposit',\n" +
-            "        type: 'uint256'\n" +
-            "    }],\n" +
-            "    payable: false,\n" +
-            "    type: 'constructor'\n" +
-            "}, {\n" +
-            "    anonymous: false,\n" +
-            "    inputs: [{\n" +
-            "        indexed: false,\n" +
-            "        name: 'start',\n" +
-            "        type: 'uint256'\n" +
-            "    }, {\n" +
-            "        indexed: false,\n" +
-            "        name: 'end',\n" +
-            "        type: 'uint256'\n" +
-            "    }, {\n" +
-            "        indexed: false,\n" +
-            "        name: 'renter',\n" +
-            "        type: 'address'\n" +
-            "    }],\n" +
-            "    name: 'OnReserve',\n" +
-            "    type: 'event'\n" +
-            "}]";
+    private Web3Bridge web3;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -198,14 +47,6 @@ public class MainActivity extends AppCompatActivity
         Toolbar toolbar = (Toolbar) findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
 
-        FloatingActionButton fab = (FloatingActionButton) findViewById(R.id.fab);
-        fab.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View view) {
-                Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-                        .setAction("Action", null).show();
-            }
-        });
 
         DrawerLayout drawer = (DrawerLayout) findViewById(R.id.drawer_layout);
         ActionBarDrawerToggle toggle = new ActionBarDrawerToggle(
@@ -216,43 +57,27 @@ public class MainActivity extends AppCompatActivity
         NavigationView navigationView = (NavigationView) findViewById(R.id.nav_view);
         navigationView.setNavigationItemSelectedListener(this);
 
-        /**/
-        KeyStore keyStore = Geth.newKeyStore(this.getFilesDir().getAbsolutePath(), Geth.LightScryptN, Geth.LightScryptP);
-        Account myAccount;
-        try {
-            myAccount = keyStore.getAccounts().get(0);
-            TextView logBox = ((TextView) findViewById(R.id.textbox));
-            EditText addr = ((EditText) findViewById(R.id.addressBox));
-            logBox.setText(logBox.getText() + "\nFound account 0: " + myAccount.getAddress().getHex());
-            addr.setText(myAccount.getAddress().getHex());
-        } catch (Exception e1) {
-            Toast.makeText(this.getApplicationContext(), "Could not find any account. Please create a new one!", Toast.LENGTH_LONG).show();
-        }
-    }
+        System.loadLibrary("statusgoraw");
+        System.loadLibrary("statusgo");
 
-    private Account getAccount(KeyStore keyStore, Address address) {
-        Accounts as = keyStore.getAccounts();
-        for (long i = 0; i < as.size(); i++) {
-            try {
-                Account acc = as.get(i);
-                if (acc.getAddress().getHex().equals(address.getHex())) {
-                    return acc;
-                }
-            } catch (Exception e) {
-                e.printStackTrace();
+
+        Thread thread = new Thread() {
+            @Override
+            public void run() {
+                doStartNode();
             }
-        }
-        return null;
-    }
+        };
+        thread.start();
+        web3 = new Web3Bridge();
+        Thread thread2 = new Thread() {
+            @Override
+            public void run() {
+                Statusgo.StartNodeRPCServer();
+            }
+        };
+        thread2.start();
 
-    private Address newLocalAccount(String pw) {
-        KeyStore keyStore = Geth.newKeyStore(this.getFilesDir().getAbsolutePath(), Geth.LightScryptN, Geth.LightScryptP);
-        try {
-            return keyStore.newAccount(pw).getAddress();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+        Toast.makeText(this, "started zeugs", Toast.LENGTH_LONG).show();
     }
 
     @Override
@@ -263,6 +88,81 @@ public class MainActivity extends AppCompatActivity
         } else {
             super.onBackPressed();
         }
+    }
+
+    private void doStartNode() {
+        final String TAG = "StatusZeug";
+        Activity currentActivity = this;
+
+        String andisGenesis = "{  \"difficulty\" : \"0x20000\",  \"gasLimit\"   : \"0x80000000\",  \"alloc\": {    \"0xe0a83a8b5ba5c9acc140f89296187f96a163cf43\": {      \"balance\": \"20000000000000000000\"    },    \"0x677c9e0a30ba472eec4ea0f4ed6dcfb1c51d6bf1\": {      \"balance\": \"20000000000000000000\"    },    \"0xa26efbc2634c81900b3d2f604e6b427dfe6e1764\": {      \"balance\": \"20000000000000000000\"    },    \"0xaf75fcb29d58549b9c451a52a64e9020a66bdf6e\": {      \"balance\": \"20000000000000000000\"    },    \"0x9fffb27287898a20857531d7aae0942184e7d56e\": {      \"balance\": \"20000000000000000000\"    },    \"0x183d9685e49367c07dc63f0938d112a74945e411\": {      \"balance\": \"20000000000000000000\"    },    \"0x57f5d12a63025e819bb51e973be075717d923c15\": {      \"balance\": \"20000000000000000000\"    },    \"0xf55fb78f02ac5ecc9333b35b4287609140690517\": {      \"balance\": \"20000000000000000000\"    },    \"0xb5ede4a54dddec0fc345b5dc11d9db077015d686\": {      \"balance\": \"20000000000000000000\"    },    \"0x179972bea45078eac67ac60c8de2257e6af33e27\": {      \"balance\": \"20000000000000000000\"    }  }}";
+
+        String root = currentActivity.getApplicationInfo().dataDir;
+        String dataFolder = root + "/ethereum/lokkit2";
+        Log.d(TAG, "Starting Geth node in folder: " + dataFolder);
+
+        try {
+            final File newFile = new File(dataFolder);
+            // todo handle error?
+            newFile.mkdir();
+        } catch (Exception e) {
+            Log.e(TAG, "error making folder: " + dataFolder, e);
+        }
+
+        /*final String lokkitFlag = root + "/lokkit_flag";
+        final File ropstenFlag = new File(lokkitFlag);
+        if (!ropstenFlag.exists()) {
+            try {*/
+                final String chaindDataFolderPath = dataFolder + "/lightchaindata";
+                final File lightChainFolder = new File(chaindDataFolderPath);
+                if (lightChainFolder.isDirectory()) {
+                    String[] children = lightChainFolder.list();
+                    for (int i = 0; i < children.length; i++) {
+                        new File(lightChainFolder, children[i]).delete();
+                    }
+                }
+                lightChainFolder.delete();
+                /*ropstenFlag.createNewFile();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }*/
+
+        String config;
+        String defaultConfig = "";
+
+        try {
+            defaultConfig = Statusgo.GenerateConfig(dataFolder, 42);
+
+            JSONObject jsonConfig = new JSONObject(defaultConfig);
+            jsonConfig.put("LogEnabled", true);
+            jsonConfig.put("LogFile", "geth.log");
+            jsonConfig.put("LogLevel", "DEBUG");
+            jsonConfig.put("Name", "lokkit");
+
+
+            JSONObject lightEthConfig = jsonConfig.getJSONObject("LightEthConfig");
+            lightEthConfig.put("Enabled", true);
+            lightEthConfig.put("Genesis", andisGenesis);
+
+            JSONObject chainConfig = new JSONObject();
+            chainConfig.put("ChainId", 42);
+            chainConfig.put("HomesteadBlock", 0);
+            chainConfig.put("EIP155Block", 0);
+            chainConfig.put("EIP158Block", 0);
+            jsonConfig.put("ChainConfig", chainConfig);
+
+            config = jsonConfig.toString();
+        } catch (JSONException e) {
+            Log.d(TAG, "Something went wrong " + e.getMessage());
+            Log.d(TAG, "Default configuration will be used");
+
+            config = defaultConfig;
+        }
+
+        String s = Statusgo.StartNode(config);
+        String peer2 = Statusgo.AddPeer("enode://5f74d479eee44164e1b884fb3e05c22fd3177f990ceed45e03cf1058aab1619ed88e4f0d9feef35c7c4c9b2098735c75a00bade50f9137606725f99f6853cea7@192.168.43.166:30303");
+
+        Log.d(TAG, "Geth node started");
     }
 
     @Override
@@ -323,7 +223,6 @@ public class MainActivity extends AppCompatActivity
     }
 
     public void onBtnClicked(View view) throws Exception {
-
         TextView logBox = ((TextView) findViewById(R.id.textbox));
         EditText addr = ((EditText) findViewById(R.id.addressBox));
         EditText pswd = ((EditText) findViewById(R.id.passwordBox));
@@ -331,27 +230,14 @@ public class MainActivity extends AppCompatActivity
         String adi = String.valueOf(addr.getText());
         String pw = String.valueOf(pswd.getText());
 
-        KeyStore keyStore = Geth.newKeyStore(this.getFilesDir().getAbsolutePath(), Geth.LightScryptN, Geth.LightScryptP);
-        Account acc;
-        try {
-            if (!adi.equals("")) {
-                acc = getAccount(keyStore, new Address(adi));
-                keyStore.unlock(acc, pw);
-                Toast.makeText(this, "acc unlocked!", Toast.LENGTH_SHORT).show();
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+
+                String acc = Statusgo.CreateAccount("hirzel");
+
             }
-        } catch (Exception e1) {
-            if (!pw.equals("")) {
-                Address newAdi = newLocalAccount(pw);
-                addr.setText(newAdi.getHex());
-                Account newAcc = getAccount(keyStore, newAdi);
-                String t = new String(keyStore.exportKey(newAcc, pw, pw));
-                ClipboardManager clipboard = (ClipboardManager) getSystemService(CLIPBOARD_SERVICE);
-                ClipData clip = ClipData.newPlainText("new account", t);
-                clipboard.setPrimaryClip(clip);
-                Toast.makeText(this, "copied new identity to clipboard", Toast.LENGTH_SHORT).show();
-            }else{
-                Toast.makeText(this, "please enter pw to unlock account.", Toast.LENGTH_SHORT).show();
-            }
-        }
+        }).start();
+
     }
 }

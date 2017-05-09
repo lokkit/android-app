@@ -22,6 +22,9 @@
         <service
             android:name=".ChainlockService"
             android:exported="false"/>
+        <service
+            android:name="im.status.ethereum.module.StatusService"
+            android:exported="false" />
     </application>
     <uses-permission android:name="android.permission.INTERNET" />
 </manifest>
