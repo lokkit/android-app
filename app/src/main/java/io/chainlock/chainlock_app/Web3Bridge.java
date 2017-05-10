@@ -2,6 +2,8 @@ package io.chainlock.chainlock_app;
 
 import android.os.Build;
 
+import org.json.JSONObject;
+
 import okhttp3.*;
 
 import java.io.IOException;
@@ -17,8 +19,11 @@ public class Web3Bridge {
         client = b.build();
     }
 
-    public String sendRequest(final String host, final String json) {
+    public String sendRequest(final String json) {
+        return sendRequest("http://localhost:8545", json);
+    }
 
+    public String sendRequest(final String host, final String json) {
         RequestBody body = RequestBody.create(JSON, json);
         Request request = new Request.Builder()
                 .url(host)

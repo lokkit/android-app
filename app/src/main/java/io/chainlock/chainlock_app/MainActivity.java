@@ -60,22 +60,9 @@ public class MainActivity extends AppCompatActivity
         System.loadLibrary("statusgoraw");
         System.loadLibrary("statusgo");
 
-
-        Thread thread = new Thread() {
-            @Override
-            public void run() {
-                doStartNode();
-            }
-        };
-        thread.start();
+        doStartNode();
         web3 = new Web3Bridge();
-        Thread thread2 = new Thread() {
-            @Override
-            public void run() {
-                Statusgo.StartNodeRPCServer();
-            }
-        };
-        thread2.start();
+        Statusgo.StartNodeRPCServer();
 
         Toast.makeText(this, "started zeugs", Toast.LENGTH_LONG).show();
     }
@@ -94,14 +81,56 @@ public class MainActivity extends AppCompatActivity
         final String TAG = "StatusZeug";
         Activity currentActivity = this;
 
-        String andisGenesis = "{  \"difficulty\" : \"0x20000\",  \"gasLimit\"   : \"0x80000000\",  \"alloc\": {    \"0xe0a83a8b5ba5c9acc140f89296187f96a163cf43\": {      \"balance\": \"20000000000000000000\"    },    \"0x677c9e0a30ba472eec4ea0f4ed6dcfb1c51d6bf1\": {      \"balance\": \"20000000000000000000\"    },    \"0xa26efbc2634c81900b3d2f604e6b427dfe6e1764\": {      \"balance\": \"20000000000000000000\"    },    \"0xaf75fcb29d58549b9c451a52a64e9020a66bdf6e\": {      \"balance\": \"20000000000000000000\"    },    \"0x9fffb27287898a20857531d7aae0942184e7d56e\": {      \"balance\": \"20000000000000000000\"    },    \"0x183d9685e49367c07dc63f0938d112a74945e411\": {      \"balance\": \"20000000000000000000\"    },    \"0x57f5d12a63025e819bb51e973be075717d923c15\": {      \"balance\": \"20000000000000000000\"    },    \"0xf55fb78f02ac5ecc9333b35b4287609140690517\": {      \"balance\": \"20000000000000000000\"    },    \"0xb5ede4a54dddec0fc345b5dc11d9db077015d686\": {      \"balance\": \"20000000000000000000\"    },    \"0x179972bea45078eac67ac60c8de2257e6af33e27\": {      \"balance\": \"20000000000000000000\"    }  }}";
+        String andisGenesis = "{\n" +
+                "  \"config\": {\n" +
+                "    \"chainId\": 42,\n" +
+                "    \"homesteadBlock\": 0,\n" +
+                "    \"eip155Block\": 0,\n" +
+                "    \"eip158Block\": 0\n" +
+                "  },\n" +
+                "  \"difficulty\" : \"0x20000\",\n" +
+                "  \"gasLimit\"   : \"0x80000000\",\n" +
+                "  \"alloc\": {\n" +
+                "    \"0xe0a83a8b5ba5c9acc140f89296187f96a163cf43\": {\n" +
+                "      \"balance\": \"20000000000000000000\"\n" +
+                "    },\n" +
+                "    \"0x677c9e0a30ba472eec4ea0f4ed6dcfb1c51d6bf1\": {\n" +
+                "      \"balance\": \"20000000000000000000\"\n" +
+                "    },\n" +
+                "    \"0xa26efbc2634c81900b3d2f604e6b427dfe6e1764\": {\n" +
+                "      \"balance\": \"20000000000000000000\"\n" +
+                "    },\n" +
+                "    \"0xaf75fcb29d58549b9c451a52a64e9020a66bdf6e\": {\n" +
+                "      \"balance\": \"20000000000000000000\"\n" +
+                "    },\n" +
+                "    \"0x9fffb27287898a20857531d7aae0942184e7d56e\": {\n" +
+                "      \"balance\": \"20000000000000000000\"\n" +
+                "    },\n" +
+                "    \"0x183d9685e49367c07dc63f0938d112a74945e411\": {\n" +
+                "      \"balance\": \"20000000000000000000\"\n" +
+                "    },\n" +
+                "    \"0x57f5d12a63025e819bb51e973be075717d923c15\": {\n" +
+                "      \"balance\": \"20000000000000000000\"\n" +
+                "    },\n" +
+                "    \"0xf55fb78f02ac5ecc9333b35b4287609140690517\": {\n" +
+                "      \"balance\": \"20000000000000000000\"\n" +
+                "    },\n" +
+                "    \"0xb5ede4a54dddec0fc345b5dc11d9db077015d686\": {\n" +
+                "      \"balance\": \"20000000000000000000\"\n" +
+                "    },\n" +
+                "    \"0x179972bea45078eac67ac60c8de2257e6af33e27\": {\n" +
+                "      \"balance\": \"20000000000000000000\"\n" +
+                "    }\n" +
+                "  }\n" +
+                "}\n";
 
         String root = currentActivity.getApplicationInfo().dataDir;
-        String dataFolder = root + "/ethereum/lokkit2";
+        String dataFolder = root + "/ethereum/lokkit5";
         Log.d(TAG, "Starting Geth node in folder: " + dataFolder);
 
         try {
             final File newFile = new File(dataFolder);
+
             // todo handle error?
             newFile.mkdir();
         } catch (Exception e) {
@@ -112,15 +141,15 @@ public class MainActivity extends AppCompatActivity
         final File ropstenFlag = new File(lokkitFlag);
         if (!ropstenFlag.exists()) {
             try {*/
-                final String chaindDataFolderPath = dataFolder + "/lightchaindata";
-                final File lightChainFolder = new File(chaindDataFolderPath);
-                if (lightChainFolder.isDirectory()) {
-                    String[] children = lightChainFolder.list();
-                    for (int i = 0; i < children.length; i++) {
-                        new File(lightChainFolder, children[i]).delete();
-                    }
-                }
-                lightChainFolder.delete();
+        final String chaindDataFolderPath = dataFolder + "/lightchaindata";
+        final File lightChainFolder = new File(chaindDataFolderPath);
+        if (lightChainFolder.isDirectory()) {
+            String[] children = lightChainFolder.list();
+            for (String child : children) {
+                new File(lightChainFolder, child).delete();
+            }
+        }
+        lightChainFolder.delete();
                 /*ropstenFlag.createNewFile();
             } catch (IOException e) {
                 e.printStackTrace();
@@ -130,37 +159,49 @@ public class MainActivity extends AppCompatActivity
         String config;
         String defaultConfig = "";
 
+        if (false)
+            try {
+                defaultConfig = Statusgo.GenerateConfig(dataFolder, 42);
+
+                JSONObject jsonConfig = new JSONObject(defaultConfig);
+                jsonConfig.put("LogEnabled", true);
+                jsonConfig.put("LogFile", "geth.log");
+                jsonConfig.put("LogLevel", "DEBUG");
+                jsonConfig.put("Name", "lokkit");
+
+
+                JSONObject lightEthConfig = jsonConfig.getJSONObject("LightEthConfig");
+                lightEthConfig.put("Enabled", true);
+                lightEthConfig.put("Genesis", andisGenesis);
+
+                JSONObject chainConfig = new JSONObject();
+                chainConfig.put("ChainId", 42);
+                chainConfig.put("HomesteadBlock", 0);
+                chainConfig.put("EIP155Block", 0);
+                chainConfig.put("EIP158Block", 0);
+                jsonConfig.put("ChainConfig", chainConfig);
+
+                config = jsonConfig.toString();
+            } catch (JSONException e) {
+                Log.d(TAG, "Something went wrong " + e.getMessage());
+                Log.d(TAG, "Default configuration will be used");
+
+                config = defaultConfig;
+            }
+
+        JSONObject j = new JSONObject();
         try {
-            defaultConfig = Statusgo.GenerateConfig(dataFolder, 42);
-
-            JSONObject jsonConfig = new JSONObject(defaultConfig);
-            jsonConfig.put("LogEnabled", true);
-            jsonConfig.put("LogFile", "geth.log");
-            jsonConfig.put("LogLevel", "DEBUG");
-            jsonConfig.put("Name", "lokkit");
-
-
-            JSONObject lightEthConfig = jsonConfig.getJSONObject("LightEthConfig");
+            j.put("DataDir", dataFolder);
+            j.put("NetworkId", 42);
+            JSONObject lightEthConfig = j.put("LightEthConfig", new JSONObject());
             lightEthConfig.put("Enabled", true);
             lightEthConfig.put("Genesis", andisGenesis);
-
-            JSONObject chainConfig = new JSONObject();
-            chainConfig.put("ChainId", 42);
-            chainConfig.put("HomesteadBlock", 0);
-            chainConfig.put("EIP155Block", 0);
-            chainConfig.put("EIP158Block", 0);
-            jsonConfig.put("ChainConfig", chainConfig);
-
-            config = jsonConfig.toString();
         } catch (JSONException e) {
-            Log.d(TAG, "Something went wrong " + e.getMessage());
-            Log.d(TAG, "Default configuration will be used");
-
-            config = defaultConfig;
+            e.printStackTrace();
         }
 
-        String s = Statusgo.StartNode(config);
-        String peer2 = Statusgo.AddPeer("enode://5f74d479eee44164e1b884fb3e05c22fd3177f990ceed45e03cf1058aab1619ed88e4f0d9feef35c7c4c9b2098735c75a00bade50f9137606725f99f6853cea7@192.168.43.166:30303");
+        String s = Statusgo.StartNode(j.toString());
+        String peer2 = Statusgo.AddPeer("enode://288b97262895b1c7ec61cf314c2e2004407d0a5dc77566877aad1f2a36659c8b698f4b56fd06c4a0c0bf007b4cfb3e7122d907da3b005fa90e724441902eb19e@192.168.43.166:30303");
 
         Log.d(TAG, "Geth node started");
     }
@@ -233,9 +274,10 @@ public class MainActivity extends AppCompatActivity
         new Thread(new Runnable() {
             @Override
             public void run() {
-
-                String acc = Statusgo.CreateAccount("hirzel");
-
+                String logon = Statusgo.Login("2cedf28382dce01f62b1aceab2f031424c363a11", "hirzel");
+                String response = web3.sendRequest("{\"method\":\"eth_accounts\",\"id\":0}");
+                String r = response.toString();
+                web3.sendRequest("{method:eth_sendTransaction, params:[]}");
             }
         }).start();
 
