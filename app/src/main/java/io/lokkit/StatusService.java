@@ -1,4 +1,4 @@
-package im.status.ethereum.module;
+package io.lokkit;
 
 import android.app.Service;
 import android.content.Intent;
@@ -6,15 +6,10 @@ import android.os.*;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import com.github.status_im.status_go.cmd.Statusgo;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import java.lang.ref.WeakReference;
 
 /**
- * Handles the hooks provided by the Statusgo library.
+ * This class is somehow required to load libstatusgoraw and libstatusgo.
  */
 public class StatusService extends Service {
 
@@ -56,27 +51,15 @@ public class StatusService extends Service {
         return true;
     }
 
-    /**
-     * This hook is called by the Statusgo native library.
-     * @param jsonEvent
-     */
     public static void signalEvent(String jsonEvent) {
+
         Log.d(TAG, "Signal event: " + jsonEvent);
-        try {
-            JSONObject jsonObject = new JSONObject(jsonEvent);
-            switch (jsonObject.getString("type")) {
-                case "transaction.queued":
-                    Statusgo.CompleteTransaction(jsonObject.getJSONObject("event").getString("id"), "hirzel");// todo: intent and get password from app
-                    break;
-            }
-        } catch (JSONException e) {
-            e.printStackTrace();
-        }
-    }
+        Bundle replyData = new Bundle();
+        replyData.putString("event", jsonEvent);
 
-    private static void handleTransaction(String id){
-        // todo: intent to activity to ask for password.
-
+        Message replyMessage = Message.obtain(null, 0, 0, 0, null);
+        replyMessage.setData(replyData);
+        sendReply(applicationMessenger, replyMessage);
     }
 
     @Nullable
@@ -100,5 +83,16 @@ public class StatusService extends Service {
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         return Service.START_STICKY;
+    }
+
+    private static void sendReply(Messenger messenger, Message message) {
+        try {
+            Log.d(TAG, "before sendReply " + (messenger != null));
+            if (messenger != null) {
+                messenger.send(message);
+            }
+        } catch (Exception e) {
+            Log.e(TAG, "Exception sending message id: " + message.what, e);
+        }
     }
 }

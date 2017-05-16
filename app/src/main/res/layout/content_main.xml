@@ -5,89 +5,42 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     app:layout_behavior="@string/appbar_scrolling_view_behavior"
-    tools:context="io.chainlock.chainlock_app.MainActivity"
+    tools:context="io.lokkit.MainActivity"
     tools:showIn="@layout/app_bar_main">
 
-    <TextView
-        android:id="@+id/addressLabel"
-        android:layout_width="wrap_content"
+    <LinearLayout
+        android:layout_width="fill_parent"
         android:layout_height="wrap_content"
-        android:text="address"
-        tools:layout_editor_absoluteX="16dp"
-        tools:layout_editor_absoluteY="28dp"
-        app:layout_constraintLeft_toRightOf="parent"
-        app:layout_constraintTop_toTopOf="parent"/>
+        android:orientation="horizontal">
 
-    <EditText
-        android:id="@+id/addressBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:inputType="textPersonName"
-        android:text=""
-        tools:layout_editor_absoluteX="85dp"
-        tools:layout_editor_absoluteY="16dp"
+        <TextView
+            android:id="@+id/nodeAddressLabel"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="URL"
+            app:layout_constraintLeft_toRightOf="parent"
+            app:layout_constraintTop_toBottomOf="parent"/>
 
-        app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintLeft_toRightOf="@id/addressLabel"/>
+        <EditText
+            android:id="@+id/nodeAddressBox"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ems="10"
+            android:inputType="textUri"
+            android:text="node url"
+            app:layout_constraintLeft_toRightOf="@id/nodeAddressLabel"
+            app:layout_constraintTop_toBottomOf="parent" />
 
-    <TextView
-        android:id="@+id/passwordLabel"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="password"
-        tools:layout_editor_absoluteY="88dp"
-        tools:layout_editor_absoluteX="11dp"
-        app:layout_constraintLeft_toRightOf="parent"
-        app:layout_constraintTop_toBottomOf="@id/addressBox" />
-
-    <EditText
-        android:id="@+id/passwordBox"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:ems="10"
-        android:inputType="textPersonName"
-        android:text=""
-        tools:layout_editor_absoluteY="73dp"
-        tools:layout_editor_absoluteX="85dp"
-        app:layout_constraintTop_toBottomOf="@id/addressBox"
-        app:layout_constraintLeft_toRightOf="@id/passwordLabel"/>
-
-
-
-    <TextView
-        android:id="@+id/textbox"
-        android:layout_width="366dp"
-        android:layout_height="148dp"
-        android:text="TextView"
-        tools:layout_editor_absoluteX="11dp"
-        tools:layout_editor_absoluteY="179dp"
-
-        app:layout_constraintTop_toBottomOf="@id/passwordBox"
-        app:layout_constraintLeft_toLeftOf="parent"
-        />
-
-    <Button
-        android:id="@+id/button"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="new account"
-        tools:layout_editor_absoluteX="16dp"
-        tools:layout_editor_absoluteY="337dp"
-        app:layout_constraintTop_toBottomOf="@id/textbox"
-        app:layout_constraintLeft_toRightOf="parent"
-        android:onClick="onBtnClicked"/>
-
-    <Button
-        android:id="@+id/button2"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:text="do thing"
-        tools:layout_editor_absoluteX="278dp"
-        tools:layout_editor_absoluteY="337dp"
-        app:layout_constraintTop_toBottomOf="@id/textbox"
-        app:layout_constraintRight_toLeftOf="parent"
-        android:onClick="doSomething"/>
-
+        <Button
+            android:id="@+id/button"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:onClick="onRestartButtonClicked"
+            android:text="Restart Node"
+            app:layout_constraintLeft_toRightOf="@id/nodeAddressBox"
+            app:layout_constraintTop_toBottomOf="parent"
+            tools:layout_editor_absoluteX="16dp"
+            tools:layout_editor_absoluteY="337dp" />
+    </LinearLayout>
 
 </android.support.constraint.ConstraintLayout>
