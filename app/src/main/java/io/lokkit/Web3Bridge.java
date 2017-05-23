@@ -1,13 +1,9 @@
 package io.lokkit;
 
-import android.os.Build;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import okhttp3.*;
 
 import java.io.IOException;
+import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 public class Web3Bridge {
@@ -20,27 +16,43 @@ public class Web3Bridge {
         client = b.build();
     }
 
-    public JSONObject sendRequest(final String host, final JSONObject json) {
+    public String sendRequest(final String host, final String json) {
         try {
-            return new JSONObject(sendRequest(host, json.toString()));
-        } catch (JSONException e) {
+            final Semaphore s = new Semaphore(1);
+            s.acquire();
+            final String[] v = {""};
+            sendRequestAsync(host, json, new Web3Callback() {
+                @Override
+                public void callback(String value) {
+                    v[0] = value;
+                    s.release();
+                }
+            });
+            s.acquire();
+            return v[0];
+        } catch (Exception e) {
             e.printStackTrace();
-            return null; // :)
+            return "";
         }
     }
 
-    public String sendRequest(final String host, final String json) {
-        RequestBody body = RequestBody.create(JSON, json);
-        Request request = new Request.Builder()
-                .url(host)
-                .post(body)
-                .build();
+    public void sendRequestAsync(final String host, final String json, final Web3Callback c) {
+        new Thread(new Runnable() {
+            @Override
+            public void run() {
+                RequestBody body = RequestBody.create(JSON, json);
+                Request request = new Request.Builder()
+                        .url(host)
+                        .post(body)
+                        .build();
 
-        try (Response response = client.newCall(request).execute()) {
-            return response.body().string().trim();
-        } catch (IOException e) {
-            e.printStackTrace();
-            return null; // haha return null. what a fail.
-        }
+                try (Response response = client.newCall(request).execute()) {
+                    c.callback(response.body().string().trim());
+                } catch (IOException e) {
+                    e.printStackTrace();
+                    c.callback(null);
+                }
+            }
+        }).start();
     }
 }
