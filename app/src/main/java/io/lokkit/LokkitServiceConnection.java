@@ -1,5 +1,6 @@
 package io.lokkit;
 
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.ServiceConnection;
 import android.os.IBinder;
@@ -14,10 +15,10 @@ import im.status.ethereum.module.StatusService;
 public class LokkitServiceConnection implements ServiceConnection {
     private StatusService lokkitService;
     private static final String TAG = "LokkitServiceConnection";
-    private LokkitActivity activity;
+    private Activity activity;
     private ServiceBoundEvent event;
 
-    public LokkitServiceConnection(LokkitActivity context) {
+    public LokkitServiceConnection(Activity context) {
         this.activity = context;
     }
 
