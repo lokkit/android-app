@@ -21,7 +21,7 @@ import android.widget.Toast;
 import im.status.ethereum.module.StatusService;
 
 /**
- * A login screen that allows to complete/discard transactions
+ * A login screen that allows to complete/discard transactions. todo: show transaction details.
  */
 public class TransactionConfirmationActivity extends Activity {
 

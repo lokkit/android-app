@@ -6,15 +6,18 @@ import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.ProgressDialog;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.ServiceConnection;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.IBinder;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
@@ -36,7 +39,7 @@ import im.status.ethereum.module.StatusService;
 public class LokkitActivity extends AppCompatActivity {
 
     private static final String TAG = "LokkitActivity";
-    protected final LokkitServiceConnection lokkitServiceConnection = new LokkitServiceConnection(this);
+    private ServiceConnection lokkitServiceConnection;
     private final Uri lokkitWebAppUri = Uri.parse("http://192.168.43.166:8080"); //todo: http://lokkit.io
     private ProgressDialog dialog;
     private int lokkitRunningStickyNotificationId = 42;
@@ -141,19 +144,27 @@ public class LokkitActivity extends AppCompatActivity {
         Log.d(TAG, "Lokkit Activity created");
         dialog = ProgressDialog.show(this, "starting node", "trust no one, just lokkit", true, false);
         dialog.setIcon(R.drawable.ic_lokkit);
-        lokkitServiceConnection.setServiceBoundEvent(new ServiceBoundEvent() {
+        lokkitServiceConnection = new ServiceConnection() {
             @Override
-            public void serviceBound() {
-                makeStickyNotification();
-                dialog.dismiss();
+            public void onServiceConnected(ComponentName componentName, IBinder binder) {
+                StatusService.LocalBinder b = (StatusService.LocalBinder) binder;
+                StatusService lokkitService = b.getService();
+                try {
+                    lokkitService.startNode(LokkitActivity.this.getApplicationInfo().dataDir + "/ethereum/data/");
+                    makeStickyNotification();
+                    dialog.dismiss();
+                } catch (LokkitException e) {
+                    Log.e(TAG, e.getMessage());
+                }
+                Log.d(TAG, "onServiceConnected");
             }
 
             @Override
-            public void serviceUnbound() {
+            public void onServiceDisconnected(ComponentName componentName) {
                 LokkitActivity.this.finish();
+                Log.d(TAG, "onServiceDisconnected");
             }
-
-        });
+        };
         final Intent intent = new Intent(this, StatusService.class);
         bindService(intent, this.lokkitServiceConnection, Context.BIND_AUTO_CREATE);
     }
