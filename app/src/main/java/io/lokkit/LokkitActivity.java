@@ -118,7 +118,7 @@ public class LokkitActivity extends AppCompatActivity {
                             }
                         })
                         .setCancelable(false)
-                        .setMessage("No account found. Please specify a password. If this dialog is cancelled, a empty password will be used.")
+                        .setMessage("No account found. Please specify a password.")
                         .show();
             }
 
@@ -151,7 +151,7 @@ public class LokkitActivity extends AppCompatActivity {
                             }
                         })
                         .setCancelable(false)
-                        .setMessage("Found account: " + mnemonic.substring(0, 15) + "...\n\nPlease provide the password.")
+                        .setMessage("\nEnter Password for: " + mnemonic.substring(0, 15) + "...")
                         .show();
             }
 
@@ -167,6 +167,20 @@ public class LokkitActivity extends AppCompatActivity {
         BroadcastReceiver loginSuccessfulReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent received) {
+                int i = 0;
+                AlertDialog a = new AlertDialog.Builder(LokkitActivity.this)
+                        .setTitle("lokkit account")
+                        .setIcon(R.drawable.ic_lokkit)
+                        .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
+                            @Override
+                            public void onClick(DialogInterface dialog, int which) {
+
+                            }
+                        })
+                        .setCancelable(false)
+                        .setMessage("")
+                        .show();
+
                 tryReloadWebapp();
             }
         };

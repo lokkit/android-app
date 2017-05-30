@@ -41,7 +41,7 @@ public class StatusService extends Service {
 
 
     private static final String TAG = "LokkitService";
-    private static WeakReference<StatusService> service;
+    private static WeakReference<StatusService> weakService;
     private Web3Bridge web3;
     private final LocalBinder localBinder = new LocalBinder();
     private boolean nodeRunning;
@@ -49,6 +49,7 @@ public class StatusService extends Service {
     private static final String addressKey = "io.lokkit.ADDRESS";
     private static final String accountPreferencesName = "io.lokkit.ACCOUNT_PREFERENCES";
     private List<BroadcastReceiver> receivers = new ArrayList<>();
+    private String password; // is kept in the app while it's running. needs to be re-entered on app restart.
 
     private SharedPreferences getAccountPreferences() {
         return getSharedPreferences(accountPreferencesName, MODE_PRIVATE);
@@ -56,6 +57,10 @@ public class StatusService extends Service {
 
     private String getMnemonic() {
         return getAccountPreferences().getString(mnemonicKey, null);
+    }
+
+    private String getPassword() {
+        return password;
     }
 
     private String getAddress() {
@@ -83,14 +88,11 @@ public class StatusService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-
-
         BroadcastReceiver completeTransactionReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 String id = intent.getExtras().getString(LokkitIntents.ID_EXTRA);
                 String pw = intent.getExtras().getString(LokkitIntents.PASSWORD_EXTRA);
-                if (pw == null) pw = "";
                 String completeTransactionResponseString = Statusgo.CompleteTransaction(id, pw);
                 try {
                     JSONObject completeTransactionResponse = new JSONObject(completeTransactionResponseString);
@@ -134,6 +136,7 @@ public class StatusService extends Service {
                 }
                 try {
                     login(password);
+                    StatusService.this.password = password;
                     response.setAction(LokkitIntents.LOGIN_SUCCESSFUL);
                 } catch (LokkitAuthenticationFailedException e) {
                     recoverAccount();
@@ -147,7 +150,7 @@ public class StatusService extends Service {
         System.loadLibrary("statusgoraw");
         System.loadLibrary("statusgo");
         this.web3 = new Web3Bridge();
-        service = new WeakReference<>(this);
+        weakService = new WeakReference<>(this);
         Log.d(TAG, "Lokkit Service created");
     }
 
@@ -285,16 +288,27 @@ public class StatusService extends Service {
             JSONObject jsonObject = new JSONObject(jsonEvent);
             switch (jsonObject.getString("type")) {
                 case "transaction.queued":
-                    Intent intent = new Intent(LokkitIntents.TRANSACTION_QUEUED);
-                    JSONObject args = jsonObject.getJSONObject("event").getJSONObject("args");
-                    intent.putExtra(LokkitIntents.FROM_EXTRA, args.getString("from"));
-                    intent.putExtra(LokkitIntents.TO_EXTRA, args.getString("to"));
-                    BigInteger value = new BigInteger(args.getString("value").substring(2), 16);
-                    intent.putExtra(LokkitIntents.VALUE_EXTRA, value);
-                    intent.putExtra(LokkitIntents.GAS_EXTRA, args.getString("gas"));
-                    intent.putExtra(LokkitIntents.GASPRICE_EXTRA, args.getString("gasPrice"));
-                    intent.putExtra(LokkitIntents.ID_EXTRA, jsonObject.getJSONObject("event").getString("id"));
-                    service.get().sendBroadcast(intent);
+                    StatusService service = weakService.get();
+                    if (service.password == null
+                            || service.password.equals("")) {
+                        service.requireAccount(); // todo: wait for response and unlock transaction
+                    } else {
+                        Statusgo.CompleteTransaction(jsonObject.getJSONObject("event").getString("id"), service.password);
+                        Intent intent = new Intent(LokkitIntents.COMPLETE_TRANSACTION);
+                        intent.putExtra(LokkitIntents.ID_EXTRA, jsonObject.getJSONObject("event").getString("id"));
+
+
+                        /*Intent intent = new Intent(LokkitIntents.TRANSACTION_QUEUED);
+                        JSONObject args = jsonObject.getJSONObject("event").getJSONObject("args");
+                        intent.putExtra(LokkitIntents.FROM_EXTRA, args.getString("from"));
+                        intent.putExtra(LokkitIntents.TO_EXTRA, args.getString("to"));
+                        BigInteger value = new BigInteger(args.getString("value").substring(2), 16);
+                        intent.putExtra(LokkitIntents.VALUE_EXTRA, value);
+                        intent.putExtra(LokkitIntents.GAS_EXTRA, args.getString("gas"));
+                        intent.putExtra(LokkitIntents.GASPRICE_EXTRA, args.getString("gasPrice"));
+                        intent.putExtra(LokkitIntents.ID_EXTRA, jsonObject.getJSONObject("event").getString("id"));
+                        weakService.get().sendBroadcast(intent);*/
+                    }
                     break;
             }
         } catch (JSONException e) {
