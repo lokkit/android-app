@@ -102,4 +102,6 @@
         completions."
     </string>
     <string name="slogan">trust no one, just lokkit</string>
+    <string name="to_contract_address">contract</string>
+    <string name="wei_long">1 Wei = 10e-18 Ether</string>
 </resources>

@@ -1,17 +1,13 @@
 package io.lokkit;
 
 /**
- * Created by Nick on 23.05.2017.
+ * This exception is thrown when the predefined lokkit network cannot be reached.
  */
 
-public class LokkitUnavailableException extends LokkitException {
+class LokkitUnavailableException extends LokkitException {
 
     public LokkitUnavailableException(String message) {
         super(message);
-    }
-
-    public LokkitUnavailableException(Throwable cause) {
-        super("Failed to connect to lokkit", cause);
     }
 
     public LokkitUnavailableException(String message, Throwable cause) {

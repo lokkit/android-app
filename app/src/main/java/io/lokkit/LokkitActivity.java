@@ -1,5 +1,6 @@
 package io.lokkit;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -13,26 +14,51 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.BitmapFactory;
+import android.graphics.Color;
 import android.graphics.drawable.Icon;
+import android.media.AudioAttributes;
 import android.net.Uri;
+import android.net.http.SslError;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
+import android.provider.Browser;
+import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.webkit.PermissionRequest;
+import android.webkit.SslErrorHandler;
+import android.webkit.WebChromeClient;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
+import android.widget.RemoteViews;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import java.math.BigInteger;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.security.KeyManagementException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.ArrayList;
+import java.util.List;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import im.status.ethereum.module.StatusService;
 
@@ -43,36 +69,38 @@ public class LokkitActivity extends AppCompatActivity {
     private final Uri lokkitWebAppUri = Uri.parse("http://192.168.43.166:8080"); //todo: http://lokkit.io
     private ProgressDialog dialog;
     private int lokkitRunningStickyNotificationId = 42;
+    private List<BroadcastReceiver> receivers = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        Bundle extras = getIntent().getExtras();
-        if (extras != null && extras.getBoolean(LokkitIntents.STARTED_FROM_STICKY_NOTIFICATION)) {
-            // return; // shortcircuit in case the activity was started from the sticky notification icon
-            // todo: maybe restore ui?
-        }
+        trustAllHosts();
 
-        this.registerReceiver(new BroadcastReceiver() {
+        BroadcastReceiver stopLokkitReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
+                LokkitActivity.this.cleanup();
                 LokkitActivity.this.finish();
             }
-        }, new IntentFilter(LokkitIntents.STOP_LOKKIT));
+        };
+        registerReceiver(stopLokkitReceiver, new IntentFilter(LokkitIntents.STOP_LOKKIT));
+        receivers.add(stopLokkitReceiver);
 
-        this.registerReceiver(new BroadcastReceiver() {
+        BroadcastReceiver transactionQueuedReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent received) {
                 Intent intent = new Intent(LokkitActivity.this, TransactionConfirmationActivity.class);
                 intent.putExtra(LokkitIntents.FROM_EXTRA, received.getExtras().getString(LokkitIntents.FROM_EXTRA));
                 intent.putExtra(LokkitIntents.TO_EXTRA, received.getExtras().getString(LokkitIntents.TO_EXTRA));
-                intent.putExtra(LokkitIntents.VALUE_EXTRA, received.getExtras().getString(LokkitIntents.VALUE_EXTRA));
+                intent.putExtra(LokkitIntents.VALUE_EXTRA, (BigInteger) received.getExtras().get(LokkitIntents.VALUE_EXTRA));
                 intent.putExtra(LokkitIntents.ID_EXTRA, received.getExtras().getString(LokkitIntents.ID_EXTRA));
                 startActivity(intent);
             }
-        }, new IntentFilter(LokkitIntents.TRANSACTION_QUEUED));
+        };
+        registerReceiver(transactionQueuedReceiver, new IntentFilter(LokkitIntents.TRANSACTION_QUEUED));
+        receivers.add(transactionQueuedReceiver);
 
-        this.registerReceiver(new BroadcastReceiver() {
+        BroadcastReceiver requireAccountReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent received) {
                 LokkitActivity.this.dialog.setTitle("create account");
@@ -99,9 +127,11 @@ public class LokkitActivity extends AppCompatActivity {
                 intent.putExtra(LokkitIntents.PASSWORD_EXTRA, password);
                 sendBroadcast(intent);
             }
-        }, new IntentFilter(LokkitIntents.REQUIRE_ACCOUNT));
+        };
+        registerReceiver(requireAccountReceiver, new IntentFilter(LokkitIntents.REQUIRE_ACCOUNT));
+        receivers.add(requireAccountReceiver);
 
-        this.registerReceiver(new BroadcastReceiver() {
+        BroadcastReceiver recoverAccountReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent received) {
                 LokkitActivity.this.dialog.setTitle("recover account");
@@ -130,15 +160,18 @@ public class LokkitActivity extends AppCompatActivity {
                 intent.putExtra(LokkitIntents.PASSWORD_EXTRA, password);
                 sendBroadcast(intent);
             }
-        }, new IntentFilter(LokkitIntents.RECOVER_ACCOUNT));
+        };
+        registerReceiver(recoverAccountReceiver, new IntentFilter(LokkitIntents.RECOVER_ACCOUNT));
+        receivers.add(recoverAccountReceiver);
 
-
-        this.registerReceiver(new BroadcastReceiver() {
+        BroadcastReceiver loginSuccessfulReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent received) {
                 tryReloadWebapp();
             }
-        }, new IntentFilter(LokkitIntents.LOGIN_SUCCESSFUL));
+        };
+        registerReceiver(loginSuccessfulReceiver, new IntentFilter(LokkitIntents.LOGIN_SUCCESSFUL));
+        receivers.add(loginSuccessfulReceiver);
 
         setContentView(R.layout.activity_lokkit_splash_screen);
         Log.d(TAG, "Lokkit Activity created");
@@ -161,6 +194,7 @@ public class LokkitActivity extends AppCompatActivity {
 
             @Override
             public void onServiceDisconnected(ComponentName componentName) {
+                LokkitActivity.this.cleanup();
                 LokkitActivity.this.finish();
                 Log.d(TAG, "onServiceDisconnected");
             }
@@ -194,15 +228,32 @@ public class LokkitActivity extends AppCompatActivity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
-        unbindService(this.lokkitServiceConnection);
-        NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
-        notificationManager.cancel(lokkitRunningStickyNotificationId);
-        notificationManager.cancelAll();
+        cleanup();
+    }
+
+    private void cleanup() {
+        try {
+            NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
+            notificationManager.cancel(lokkitRunningStickyNotificationId);
+            notificationManager.cancelAll();
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+        }
+        for (BroadcastReceiver receiver : this.receivers) {
+            unregisterReceiver(receiver);
+        }
+        receivers.clear();
+        try {
+            unbindService(this.lokkitServiceConnection);
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+        }
     }
 
     @Override
     public void onStart() {
         super.onStart();
+        //switchToWebsite();
     }
 
     @Override
@@ -248,12 +299,66 @@ public class LokkitActivity extends AppCompatActivity {
         webView.getSettings().setPluginState(WebSettings.PluginState.ON);
         final WebSettings settings = webView.getSettings();
         settings.setJavaScriptEnabled(true);
+        settings.setDomStorageEnabled(true);
+        settings.setPluginState(WebSettings.PluginState.ON);
         webView.setWebViewClient(new WebViewClient() {
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                 Toast.makeText(LokkitActivity.this, "Error: " + description, Toast.LENGTH_LONG).show();
             }
+
+            @Override
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                handler.proceed(); // Ignore SSL certificate errors
+            }
+        });
+        webView.setWebChromeClient(new WebChromeClient() {
+            @Override
+            public void onPermissionRequest(final PermissionRequest request) {
+                request.grant(request.getResources());
+            }
         });
         webView.loadUrl(lokkitWebAppUri.toString());
+    }
+
+    private class LokkitHostVerifierTrustManager implements HostnameVerifier, X509TrustManager {
+        @Override
+        public boolean verify(String s, SSLSession sslSession) {
+            return true;
+        }
+
+        @Override
+        public void checkClientTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+            for (X509Certificate cert : x509Certificates) {
+                cert.checkValidity();
+            }
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
+            for (X509Certificate cert : x509Certificates) {
+                cert.checkValidity();
+            }
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    }
+
+    private void trustAllHosts() {
+        try {
+            LokkitHostVerifierTrustManager verifierTrustmanager = new LokkitHostVerifierTrustManager();
+            HttpsURLConnection.setDefaultHostnameVerifier(verifierTrustmanager);
+            SSLContext context = SSLContext.getInstance("TLS");
+            TrustManager[] myTrustmangers = new TrustManager[1];
+            myTrustmangers[0] = verifierTrustmanager;
+            context.init(null, myTrustmangers, new SecureRandom());
+            HttpsURLConnection.setDefaultSSLSocketFactory(context.getSocketFactory());
+        } catch (NoSuchAlgorithmException | KeyManagementException e) {
+            e.printStackTrace();
+        }
+
     }
 
     private void tryReloadWebapp() {
@@ -278,6 +383,7 @@ public class LokkitActivity extends AppCompatActivity {
                             setContentView(R.layout.activity_lokkit_webapp);
                             WebView webView = (WebView) findViewById(R.id.lokkitWebView);
                             configureLokkitWebView(webView);
+                            //switchToWebsite();
                         } else {
                             setContentView(R.layout.activity_lokkit_splash_screen);
                             TextView statusBox = ((TextView) findViewById(R.id.statusBox));
@@ -290,6 +396,19 @@ public class LokkitActivity extends AppCompatActivity {
         }).start();
     }
 
+    private void switchToWebsite() {
+        Intent i = new Intent(Intent.ACTION_VIEW);
+        i.setData(LokkitActivity.this.lokkitWebAppUri);
+        i.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT);
+        i.putExtra(Browser.EXTRA_APPLICATION_ID, getPackageName());
+        PendingIntent pi = PendingIntent.getActivity(this, 0, i, PendingIntent.FLAG_UPDATE_CURRENT);
+        try {
+            pi.send();
+        } catch (PendingIntent.CanceledException e) {
+            Log.e(TAG, e.getMessage());
+        }
+    }
+
     public void splashScreenClicked(View view) {
         tryReloadWebapp();
     }
@@ -297,12 +416,13 @@ public class LokkitActivity extends AppCompatActivity {
     private void makeStickyNotification() {
         Intent intent = new Intent(this, LokkitActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT | Intent.FLAG_ACTIVITY_SINGLE_TOP);
-        PendingIntent contentIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, PendingIntent.FLAG_NO_CREATE | PendingIntent.FLAG_UPDATE_CURRENT);
+        PendingIntent contentIntent = PendingIntent.getActivity(getApplicationContext(), 0, intent, 0);
 
         Intent stopNodeIntent = new Intent(LokkitIntents.STOP_LOKKIT);
         PendingIntent stopNodePendingIntent = PendingIntent.getBroadcast(this, 0, stopNodeIntent, 0);
         Notification.Action.Builder stopNodeAction = new Notification.Action.Builder(
-                Icon.createWithResource(this, R.drawable.ic_stop_icon), "stop node", stopNodePendingIntent);
+                Icon.createWithResource(this, R.drawable.ic_stop_icon), "stop lokkit", stopNodePendingIntent);
+
 
         Notification.Builder builder = new Notification.Builder(this)
                 .setContentTitle("lokkit node is running")
@@ -310,12 +430,13 @@ public class LokkitActivity extends AppCompatActivity {
                 .setContentIntent(contentIntent)
                 .setSmallIcon(R.drawable.ic_lokkit)
                 .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_lokkit))
-                .addAction(stopNodeAction.build());
-
+                .addAction(stopNodeAction.build())
+                .setColor(getResources().getColor(R.color.colorAccent, null))
+                .setLights(getResources().getColor(R.color.colorAccent, null), 1000, 0);
         Notification n = builder.build();
-        n.flags |= Notification.FLAG_NO_CLEAR | Notification.FLAG_ONGOING_EVENT;
-        n.color = getResources().getColor(R.color.colorAccent, null);
 
+        n.flags |= Notification.FLAG_NO_CLEAR;
+        n.defaults |= Notification.FLAG_SHOW_LIGHTS;
         NotificationManager notificationManager = (NotificationManager) getSystemService(NOTIFICATION_SERVICE);
         notificationManager.notify(lokkitRunningStickyNotificationId, n);
     }

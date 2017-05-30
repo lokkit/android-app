@@ -18,7 +18,9 @@ import android.widget.ProgressBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import im.status.ethereum.module.StatusService;
+import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * A login screen that allows to complete/discard transactions. todo: show transaction details.
@@ -26,23 +28,30 @@ import im.status.ethereum.module.StatusService;
 public class TransactionConfirmationActivity extends Activity {
 
     private EditText passwordTextEdit;
+    private EditText fromAddressText;
+    private TextView toAddressTextView;
+    private TextView valueTextView;
     private ProgressDialog progressDialog;
     private ProgressBar progressBar;
     private String from;
     private String id;
     private String to;
-    private String value;
+    private BigInteger value;
+    private List<BroadcastReceiver> receivers = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_transaction_confirmation);
         passwordTextEdit = (EditText) findViewById(R.id.password);
+        toAddressTextView = (TextView) findViewById(R.id.toAddress);
+        valueTextView = (TextView) findViewById(R.id.value);
+        fromAddressText = (EditText) findViewById(R.id.fromAddress);
 
         IntentFilter filter = new IntentFilter();
         filter.addAction(LokkitIntents.COMPLETE_TRANSACTION_FAILED);
         filter.addAction(LokkitIntents.COMPLETE_TRANSACTION_SUCCESSFUL);
-        registerReceiver(new BroadcastReceiver() {
+        BroadcastReceiver broadcastReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent intent) {
                 if (id.equals(intent.getExtras().getString(LokkitIntents.ID_EXTRA))) {
@@ -64,16 +73,20 @@ public class TransactionConfirmationActivity extends Activity {
                     }
                 }
             }
-        }, filter);
+        };
+        registerReceiver(broadcastReceiver, filter);
+        receivers.add(broadcastReceiver);
 
         Intent intent = getIntent();
         from = intent.getExtras().getString(LokkitIntents.FROM_EXTRA);
         id = intent.getExtras().getString(LokkitIntents.ID_EXTRA);
         to = intent.getExtras().getString(LokkitIntents.TO_EXTRA);
-        value = intent.getExtras().getString(LokkitIntents.VALUE_EXTRA);
+        value = (BigInteger) intent.getExtras().get(LokkitIntents.VALUE_EXTRA);
 
-        EditText addressView = (EditText) findViewById(R.id.address);
-        addressView.setText(from);
+        fromAddressText.setText(from);
+        toAddressTextView.setText(to);
+        valueTextView.setText(value.toString(10) + " Ether");
+
         passwordTextEdit.setOnEditorActionListener(new TextView.OnEditorActionListener() {
             @Override
             public boolean onEditorAction(TextView textView, int id, KeyEvent keyEvent) {
@@ -106,18 +119,27 @@ public class TransactionConfirmationActivity extends Activity {
     @Override
     protected void onDestroy() {
         super.onDestroy();
+        for (BroadcastReceiver receiver : this.receivers) {
+            unregisterReceiver(receiver);
+        }
+    }
+
+    @Override
+    public void onBackPressed() {
+        processTransaction(false);
     }
 
     private void processTransaction(boolean complete) {
+        progressDialog = ProgressDialog.show(this, "Completing transaction", "trust no one, just lokkit.");
         Intent intent = new Intent();
         intent.putExtra(LokkitIntents.ID_EXTRA, id);
         if (complete) {
             intent.setAction(LokkitIntents.COMPLETE_TRANSACTION);
             intent.putExtra(LokkitIntents.PASSWORD_EXTRA, passwordTextEdit.getText().toString());
-            progressDialog = ProgressDialog.show(this, "Completing transaction", "trust no one, just lokkit.");
             //progressBar.setVisibility(View.VISIBLE);
         } else {
             intent.setAction(LokkitIntents.DISCARD_TRANSACTION);
+            progressDialog.dismiss();
             finish();
         }
         sendBroadcast(intent);
