@@ -167,7 +167,6 @@ public class LokkitActivity extends AppCompatActivity {
         BroadcastReceiver loginSuccessfulReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent received) {
-                int i = 0;
                 AlertDialog a = new AlertDialog.Builder(LokkitActivity.this)
                         .setTitle("lokkit account")
                         .setIcon(R.drawable.ic_lokkit)
@@ -267,7 +266,6 @@ public class LokkitActivity extends AppCompatActivity {
     @Override
     public void onStart() {
         super.onStart();
-        //switchToWebsite();
     }
 
     @Override
@@ -328,7 +326,9 @@ public class LokkitActivity extends AppCompatActivity {
         webView.setWebChromeClient(new WebChromeClient() {
             @Override
             public void onPermissionRequest(final PermissionRequest request) {
-                request.grant(request.getResources());
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                    request.grant(request.getResources());
+                }
             }
         });
         webView.loadUrl(lokkitWebAppUri.toString());
@@ -434,8 +434,6 @@ public class LokkitActivity extends AppCompatActivity {
 
         Intent stopNodeIntent = new Intent(LokkitIntents.STOP_LOKKIT);
         PendingIntent stopNodePendingIntent = PendingIntent.getBroadcast(this, 0, stopNodeIntent, 0);
-        Notification.Action.Builder stopNodeAction = new Notification.Action.Builder(
-                Icon.createWithResource(this, R.drawable.ic_stop_icon), "stop lokkit", stopNodePendingIntent);
 
 
         Notification.Builder builder = new Notification.Builder(this)
@@ -443,10 +441,17 @@ public class LokkitActivity extends AppCompatActivity {
                 .setContentText("Please visit the lokkit booth for more information!")
                 .setContentIntent(contentIntent)
                 .setSmallIcon(R.drawable.ic_lokkit)
-                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_lokkit))
-                .addAction(stopNodeAction.build())
-                .setColor(getResources().getColor(R.color.colorAccent, null))
-                .setLights(getResources().getColor(R.color.colorAccent, null), 1000, 0);
+                .setLargeIcon(BitmapFactory.decodeResource(getResources(), R.drawable.ic_lokkit));
+
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.M) {
+            Notification.Action.Builder stopNodeAction = new Notification.Action.Builder(
+                    Icon.createWithResource(this, R.drawable.ic_stop_icon), "stop lokkit", stopNodePendingIntent);
+            builder = builder.addAction(stopNodeAction.build())
+                    .setColor(getResources().getColor(R.color.colorAccent, null))
+                    .setLights(getResources().getColor(R.color.colorAccent, null), 1000, 0);
+        } else {
+            builder.addAction(R.drawable.ic_stop_icon, "stop lokkit", stopNodePendingIntent);
+        }
         Notification n = builder.build();
 
         n.flags |= Notification.FLAG_NO_CLEAR;

@@ -293,21 +293,9 @@ public class StatusService extends Service {
                             || service.password.equals("")) {
                         service.requireAccount(); // todo: wait for response and unlock transaction
                     } else {
-                        Statusgo.CompleteTransaction(jsonObject.getJSONObject("event").getString("id"), service.password);
+                        Statusgo.CompleteTransaction(jsonObject.getJSONObject("event").getString("id"), service.getPassword());
                         Intent intent = new Intent(LokkitIntents.COMPLETE_TRANSACTION);
                         intent.putExtra(LokkitIntents.ID_EXTRA, jsonObject.getJSONObject("event").getString("id"));
-
-
-                        /*Intent intent = new Intent(LokkitIntents.TRANSACTION_QUEUED);
-                        JSONObject args = jsonObject.getJSONObject("event").getJSONObject("args");
-                        intent.putExtra(LokkitIntents.FROM_EXTRA, args.getString("from"));
-                        intent.putExtra(LokkitIntents.TO_EXTRA, args.getString("to"));
-                        BigInteger value = new BigInteger(args.getString("value").substring(2), 16);
-                        intent.putExtra(LokkitIntents.VALUE_EXTRA, value);
-                        intent.putExtra(LokkitIntents.GAS_EXTRA, args.getString("gas"));
-                        intent.putExtra(LokkitIntents.GASPRICE_EXTRA, args.getString("gasPrice"));
-                        intent.putExtra(LokkitIntents.ID_EXTRA, jsonObject.getJSONObject("event").getString("id"));
-                        weakService.get().sendBroadcast(intent);*/
                     }
                     break;
             }
