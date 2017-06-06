@@ -167,19 +167,6 @@ public class LokkitActivity extends AppCompatActivity {
         BroadcastReceiver loginSuccessfulReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent received) {
-                AlertDialog a = new AlertDialog.Builder(LokkitActivity.this)
-                        .setTitle("lokkit account")
-                        .setIcon(R.drawable.ic_lokkit)
-                        .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
-                            @Override
-                            public void onClick(DialogInterface dialog, int which) {
-
-                            }
-                        })
-                        .setCancelable(false)
-                        .setMessage("")
-                        .show();
-
                 tryReloadWebapp();
             }
         };
