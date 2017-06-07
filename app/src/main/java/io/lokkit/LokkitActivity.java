@@ -1,6 +1,5 @@
 package io.lokkit;
 
-import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -14,9 +13,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.graphics.BitmapFactory;
-import android.graphics.Color;
 import android.graphics.drawable.Icon;
-import android.media.AudioAttributes;
 import android.net.Uri;
 import android.net.http.SslError;
 import android.os.Build;
@@ -24,7 +21,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.provider.Browser;
-import android.support.v4.app.ActivityCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
@@ -38,7 +34,6 @@ import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.EditText;
-import android.widget.RemoteViews;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -59,8 +54,6 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
-
-import im.status.ethereum.module.StatusService;
 
 public class LokkitActivity extends AppCompatActivity {
 
@@ -180,8 +173,8 @@ public class LokkitActivity extends AppCompatActivity {
         lokkitServiceConnection = new ServiceConnection() {
             @Override
             public void onServiceConnected(ComponentName componentName, IBinder binder) {
-                StatusService.LocalBinder b = (StatusService.LocalBinder) binder;
-                StatusService lokkitService = b.getService();
+                LokkitService.LocalBinder b = (LokkitService.LocalBinder) binder;
+                LokkitService lokkitService = b.getService();
                 try {
                     lokkitService.startNode(LokkitActivity.this.getApplicationInfo().dataDir + "/ethereum/data/");
                     makeStickyNotification();
@@ -199,7 +192,7 @@ public class LokkitActivity extends AppCompatActivity {
                 Log.d(TAG, "onServiceDisconnected");
             }
         };
-        final Intent intent = new Intent(this, StatusService.class);
+        final Intent intent = new Intent(this, LokkitService.class);
         bindService(intent, this.lokkitServiceConnection, Context.BIND_AUTO_CREATE);
     }
 

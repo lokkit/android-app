@@ -17,7 +17,7 @@
         android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true">
         <service
-            android:name="im.status.ethereum.module.StatusService"
+            android:name=".LokkitService"
             android:exported="false" />
 
         <activity

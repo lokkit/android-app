@@ -1,4 +1,4 @@
-package im.status.ethereum.module;
+package io.lokkit;
 
 import android.app.Service;
 import android.content.BroadcastReceiver;
@@ -17,22 +17,16 @@ import org.json.JSONObject;
 
 import java.io.File;
 import java.lang.ref.WeakReference;
-import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import io.lokkit.LokkitAuthenticationFailedException;
-import io.lokkit.LokkitException;
-import io.lokkit.LokkitIntents;
-import io.lokkit.Web3Bridge;
-
 /**
  * Handles the hooks provided by the Statusgo library.
  */
-public class StatusService extends Service {
+public class LokkitService extends Service {
     private final String lokkitGenesis = "{\"config\":{\"chainId\":42,\"homesteadBlock\":0,\"eip155Block\":0,\"eip158Block\":0},\"difficulty\":\"0x20000\",\"gasLimit\":\"0x80000000\",\"alloc\":{\"0xe0a83a8b5ba5c9acc140f89296187f96a163cf43\":{\"balance\":\"20000000000000000000\"},\"0x677c9e0a30ba472eec4ea0f4ed6dcfb1c51d6bf1\":{\"balance\":\"20000000000000000000\"},\"0xa26efbc2634c81900b3d2f604e6b427dfe6e1764\":{\"balance\":\"20000000000000000000\"},\"0xaf75fcb29d58549b9c451a52a64e9020a66bdf6e\":{\"balance\":\"20000000000000000000\"},\"0x9fffb27287898a20857531d7aae0942184e7d56e\":{\"balance\":\"20000000000000000000\"},\"0x183d9685e49367c07dc63f0938d112a74945e411\":{\"balance\":\"20000000000000000000\"},\"0x57f5d12a63025e819bb51e973be075717d923c15\":{\"balance\":\"20000000000000000000\"},\"0xf55fb78f02ac5ecc9333b35b4287609140690517\":{\"balance\":\"20000000000000000000\"},\"0xb5ede4a54dddec0fc345b5dc11d9db077015d686\":{\"balance\":\"20000000000000000000\"},\"0x179972bea45078eac67ac60c8de2257e6af33e27\":{\"balance\":\"20000000000000000000\"}}}";
     private final static Collection<String> peers = Collections.unmodifiableCollection(Arrays.asList(
             "enode://288b97262895b1c7ec61cf314c2e2004407d0a5dc77566877aad1f2a36659c8b698f4b56fd06c4a0c0bf007b4cfb3e7122d907da3b005fa90e724441902eb19e@192.168.43.166:30303",
@@ -41,7 +35,7 @@ public class StatusService extends Service {
 
 
     private static final String TAG = "LokkitService";
-    private static WeakReference<StatusService> weakService;
+    private static WeakReference<LokkitService> weakService;
     private Web3Bridge web3;
     private final LocalBinder localBinder = new LocalBinder();
     private boolean nodeRunning;
@@ -136,7 +130,7 @@ public class StatusService extends Service {
                 }
                 try {
                     login(password);
-                    StatusService.this.password = password;
+                    LokkitService.this.password = password;
                     response.setAction(LokkitIntents.LOGIN_SUCCESSFUL);
                 } catch (LokkitAuthenticationFailedException e) {
                     recoverAccount();
@@ -288,7 +282,7 @@ public class StatusService extends Service {
             JSONObject jsonObject = new JSONObject(jsonEvent);
             switch (jsonObject.getString("type")) {
                 case "transaction.queued":
-                    StatusService service = weakService.get();
+                    LokkitService service = weakService.get();
                     if (service.password == null
                             || service.password.equals("")) {
                         service.requireAccount(); // todo: wait for response and unlock transaction
@@ -305,8 +299,8 @@ public class StatusService extends Service {
     }
 
     public class LocalBinder extends Binder {
-        public StatusService getService() {
-            return StatusService.this;
+        public LokkitService getService() {
+            return LokkitService.this;
         }
     }
 }
