@@ -103,12 +103,12 @@ public class LokkitActivity extends AppCompatActivity {
         BroadcastReceiver requireAccountReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context context, Intent received) {
-                LokkitActivity.this.dialog.setTitle("create account");
+                LokkitActivity.this.dialog.setTitle("creating account");
                 LokkitActivity.this.dialog.show();
                 final EditText input = new EditText(LokkitActivity.this);
                 input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_VARIATION_PASSWORD);
                 AlertDialog a = new AlertDialog.Builder(LokkitActivity.this)
-                        .setTitle("lokkit account")
+                        .setTitle("new account")
                         .setIcon(R.drawable.ic_lokkit)
                         .setView(input)
                         .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
@@ -141,7 +141,7 @@ public class LokkitActivity extends AppCompatActivity {
                 String address = received.getExtras().getString(LokkitIntents.ADDRESS_EXTRA);
                 String mnemonic = received.getExtras().getString(LokkitIntents.MNEMONIC_EXTRA);
                 AlertDialog a = new AlertDialog.Builder(LokkitActivity.this)
-                        .setTitle("lokkit account")
+                        .setTitle("unlock account")
                         .setIcon(R.drawable.ic_lokkit)
                         .setView(input)
                         .setPositiveButton("Confirm", new DialogInterface.OnClickListener() {
