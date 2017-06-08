@@ -59,7 +59,7 @@ public class LokkitActivity extends AppCompatActivity {
 
     private static final String TAG = "LokkitActivity";
     private ServiceConnection lokkitServiceConnection;
-    private final Uri lokkitWebAppUri = Uri.parse("http://192.168.43.166:8080"); //todo: http://lokkit.io
+    private final Uri lokkitWebAppUri = Uri.parse("https://webapp.lokkit.io");
     private ProgressDialog dialog;
     private int lokkitRunningStickyNotificationId = 42;
     private List<BroadcastReceiver> receivers = new ArrayList<>();
