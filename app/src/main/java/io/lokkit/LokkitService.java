@@ -28,17 +28,22 @@ import java.util.List;
  */
 public class LokkitService extends Service {
     private final String lokkitGenesis = "{\"config\":{\"chainId\":42,\"homesteadBlock\":0,\"eip155Block\":0,\"eip158Block\":0},\"difficulty\":\"0x20000\",\"gasLimit\":\"0x80000000\",\"alloc\":{\"0xe0a83a8b5ba5c9acc140f89296187f96a163cf43\":{\"balance\":\"20000000000000000000\"},\"0x677c9e0a30ba472eec4ea0f4ed6dcfb1c51d6bf1\":{\"balance\":\"20000000000000000000\"},\"0xa26efbc2634c81900b3d2f604e6b427dfe6e1764\":{\"balance\":\"20000000000000000000\"},\"0xaf75fcb29d58549b9c451a52a64e9020a66bdf6e\":{\"balance\":\"20000000000000000000\"},\"0x9fffb27287898a20857531d7aae0942184e7d56e\":{\"balance\":\"20000000000000000000\"},\"0x183d9685e49367c07dc63f0938d112a74945e411\":{\"balance\":\"20000000000000000000\"},\"0x57f5d12a63025e819bb51e973be075717d923c15\":{\"balance\":\"20000000000000000000\"},\"0xf55fb78f02ac5ecc9333b35b4287609140690517\":{\"balance\":\"20000000000000000000\"},\"0xb5ede4a54dddec0fc345b5dc11d9db077015d686\":{\"balance\":\"20000000000000000000\"},\"0x179972bea45078eac67ac60c8de2257e6af33e27\":{\"balance\":\"20000000000000000000\"}}}";
-    private final static Collection<String> peers = Collections.unmodifiableCollection(Arrays.asList(
+    /*private final static Collection<String> peers = Collections.unmodifiableCollection(Arrays.asList(
             "enode://288b97262895b1c7ec61cf314c2e2004407d0a5dc77566877aad1f2a36659c8b698f4b56fd06c4a0c0bf007b4cfb3e7122d907da3b005fa90e724441902eb19e@192.168.43.166:30303",
             "enode://5f74d479eee44164e1b884fb3e05c22fd3177f990ceed45e03cf1058aab1619ed88e4f0d9feef35c7c4c9b2098735c75a00bade50f9137606725f99f6853cea7@192.168.43.166:30308",
             "enode://0d1253bb5f62a0ea42e312d9b352abf1742ca2b060b1f5b1e401d7e39fbd8081a04b8e060ef3430d0382e08c74891d345189f3fe64292f1efbcef4ac65ea8c7c@192.168.43.166:30305"));
+*/
 
+    private final static Collection<String> peers = Collections.unmodifiableCollection(Arrays.asList(
+            "enode://5f74d479eee44164e1b884fb3e05c22fd3177f990ceed45e03cf1058aab1619ed88e4f0d9feef35c7c4c9b2098735c75a00bade50f9137606725f99f6853cea7@192.168.0.68:30308",
+            "enode://288b97262895b1c7ec61cf314c2e2004407d0a5dc77566877aad1f2a36659c8b698f4b56fd06c4a0c0bf007b4cfb3e7122d907da3b005fa90e724441902eb19e@192.168.0.68:30303"));
 
     private static final String TAG = "LokkitService";
     private static WeakReference<LokkitService> weakService;
     private Web3Bridge web3;
     private final LocalBinder localBinder = new LocalBinder();
     private boolean nodeRunning;
+    private String dir;
     private static final String mnemonicKey = "io.lokkit.MNEMONIC";
     private static final String addressKey = "io.lokkit.ADDRESS";
     private static final String accountPreferencesName = "io.lokkit.ACCOUNT_PREFERENCES";
@@ -76,7 +81,23 @@ public class LokkitService extends Service {
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {
+        //  restartNode();
         return localBinder;
+    }
+
+    private void restartNode() {
+        if (this.nodeRunning && dir != null && !dir.equals("")) {
+            try {
+                stopNode();
+            } catch (Exception ignored) {
+
+            }
+            try {
+                startNode(dir);
+            } catch (Exception ignored) {
+
+            }
+        }
     }
 
     @Override
@@ -128,6 +149,7 @@ public class LokkitService extends Service {
                         || getAddress() == null) {
                     createAndPersistAccount(password);
                 }
+
                 try {
                     login(password);
                     LokkitService.this.password = password;
@@ -169,7 +191,7 @@ public class LokkitService extends Service {
             JSONObject jsonConfig = new JSONObject();
             jsonConfig.put("LogEnabled", true);
             jsonConfig.put("LogFile", "geth.log");
-            jsonConfig.put("LogLevel", "DEBUG");
+            jsonConfig.put("TestNet", true);
             jsonConfig.put("Name", "lokkit");
             jsonConfig.put("DataDir", getNodeDataDir().getAbsolutePath());
             jsonConfig.put("NetworkId", 42);
@@ -201,7 +223,10 @@ public class LokkitService extends Service {
         String startResult = Statusgo.StartNode(getNodeConfig().toString());
         Log.d(TAG, startResult);
         for (String peer : peers) {
-            Log.d(TAG, Statusgo.AddPeer(peer));
+            //Log.d(TAG, Statusgo.AddPeer(peer));
+            String bootNode = "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"admin_addPeer\",\"params\":[\"" + peer + "\"]}";
+            String result = web3.sendRequest("http://localhost:8545", bootNode);
+            Log.w(TAG, result);
         }
         Log.d(TAG, Statusgo.StartNodeRPCServer());
 
@@ -212,6 +237,7 @@ public class LokkitService extends Service {
             recoverAccount();
         }
         nodeRunning = true;
+        this.dir = dir;
         Log.d(TAG, "Lokkit node started");
     }
 
@@ -268,6 +294,7 @@ public class LokkitService extends Service {
         Log.d(TAG, Statusgo.StopNodeRPCServer());
         Log.d(TAG, Statusgo.StopNode());
         nodeRunning = false;
+        dir = "";
         Log.d(TAG, "Lokkit node stopped");
     }
 
@@ -283,8 +310,7 @@ public class LokkitService extends Service {
             switch (jsonObject.getString("type")) {
                 case "transaction.queued":
                     LokkitService service = weakService.get();
-                    if (service.password == null
-                            || service.password.equals("")) {
+                    if (service.password == null) {
                         service.requireAccount(); // todo: wait for response and unlock transaction
                     } else {
                         Statusgo.CompleteTransaction(jsonObject.getJSONObject("event").getString("id"), service.getPassword());

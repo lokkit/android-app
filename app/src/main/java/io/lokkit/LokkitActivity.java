@@ -1,5 +1,6 @@
 package io.lokkit;
 
+import android.Manifest;
 import android.app.AlertDialog;
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -12,6 +13,7 @@ import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
+import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
@@ -21,6 +23,8 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.provider.Browser;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.text.InputType;
 import android.util.Log;
@@ -47,6 +51,7 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
@@ -63,6 +68,7 @@ public class LokkitActivity extends AppCompatActivity {
     private ProgressDialog dialog;
     private int lokkitRunningStickyNotificationId = 42;
     private List<BroadcastReceiver> receivers = new ArrayList<>();
+    private final int PERMISSION_REQUEST_LOKKIT = 1354;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -193,6 +199,11 @@ public class LokkitActivity extends AppCompatActivity {
             }
         };
         final Intent intent = new Intent(this, LokkitService.class);
+        try {
+            stopService(intent);
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+        }
         bindService(intent, this.lokkitServiceConnection, Context.BIND_AUTO_CREATE);
     }
 
@@ -238,6 +249,11 @@ public class LokkitActivity extends AppCompatActivity {
         receivers.clear();
         try {
             unbindService(this.lokkitServiceConnection);
+        } catch (Exception e) {
+            Log.e(TAG, e.getMessage());
+        }
+        try {
+            stopService(new Intent(this, LokkitService.class));
         } catch (Exception e) {
             Log.e(TAG, e.getMessage());
         }
@@ -288,11 +304,13 @@ public class LokkitActivity extends AppCompatActivity {
     }
 
     private void configureLokkitWebView(WebView webView) {
-        webView.getSettings().setPluginState(WebSettings.PluginState.ON);
+        WebView.setWebContentsDebuggingEnabled(true);
         final WebSettings settings = webView.getSettings();
+        settings.setPluginState(WebSettings.PluginState.ON);
         settings.setJavaScriptEnabled(true);
         settings.setDomStorageEnabled(true);
         settings.setPluginState(WebSettings.PluginState.ON);
+        settings.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         webView.setWebViewClient(new WebViewClient() {
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
                 Toast.makeText(LokkitActivity.this, "Error: " + description, Toast.LENGTH_LONG).show();
@@ -374,14 +392,9 @@ public class LokkitActivity extends AppCompatActivity {
                     @Override
                     public void run() {
                         if (connectedToLokkit) {
-                            setContentView(R.layout.activity_lokkit_webapp);
-                            WebView webView = (WebView) findViewById(R.id.lokkitWebView);
-                            configureLokkitWebView(webView);
-                            //switchToWebsite();
+                            switchToWebview();
                         } else {
-                            setContentView(R.layout.activity_lokkit_splash_screen);
-                            TextView statusBox = ((TextView) findViewById(R.id.statusBox));
-                            statusBox.setText("Cannot connect to lokkit. Please connect to the lokkit WIFI and try again by clicking the lokk.");
+                            switchToErrorPage("Cannot connect to lokkit. Please connect to the lokkit WIFI and try again by clicking the lokk.");
                         }
                     }
                 });
@@ -390,6 +403,43 @@ public class LokkitActivity extends AppCompatActivity {
         }).start();
     }
 
+    private void switchToErrorPage(String error) {
+        setContentView(R.layout.activity_lokkit_splash_screen);
+        TextView statusBox = ((TextView) findViewById(R.id.statusBox));
+        statusBox.setText(error);
+    }
+
+    private void switchToWebview() {
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
+            || ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            requestPermissions(new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_LOKKIT);
+        } else {
+            setContentView(R.layout.activity_lokkit_webapp);
+            WebView webView = (WebView) findViewById(R.id.lokkitWebView);
+            configureLokkitWebView(webView);
+        }
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, String permissions[], int[] grantResults) {
+        switch (requestCode) {
+            case PERMISSION_REQUEST_LOKKIT: {
+                List<String> notGrantedPermissions = new ArrayList<>();
+                for (int i = 0; i < permissions.length; i++) {
+                    if (grantResults[i] != PackageManager.PERMISSION_GRANTED) {
+                        notGrantedPermissions.add(permissions[i]);
+                    }
+                }
+                if (notGrantedPermissions.size() > 0) {
+                    switchToErrorPage("Please grant permissions for CAMERA and STORAGE.");
+                } else {
+                    switchToWebview();
+                }
+            }
+        }
+    }
+
+    @Deprecated
     private void switchToWebsite() {
         Intent i = new Intent(Intent.ACTION_VIEW);
         i.setData(LokkitActivity.this.lokkitWebAppUri);
