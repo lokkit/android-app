@@ -17,6 +17,7 @@ import android.content.pm.PackageManager;
 import android.graphics.BitmapFactory;
 import android.graphics.drawable.Icon;
 import android.net.Uri;
+import android.net.http.SslCertificate;
 import android.net.http.SslError;
 import android.os.Build;
 import android.os.Bundle;
@@ -64,7 +65,7 @@ public class LokkitActivity extends AppCompatActivity {
 
     private static final String TAG = "LokkitActivity";
     private ServiceConnection lokkitServiceConnection;
-    private final Uri lokkitWebAppUri = Uri.parse("https://webapp.lokkit.io");
+    private final Uri lokkitWebAppUri = Uri.parse("http://192.168.0.14:8080");
     private ProgressDialog dialog;
     private int lokkitRunningStickyNotificationId = 42;
     private List<BroadcastReceiver> receivers = new ArrayList<>();
@@ -318,7 +319,17 @@ public class LokkitActivity extends AppCompatActivity {
 
             @Override
             public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
-                handler.proceed(); // Ignore SSL certificate errors
+                //boolean untrusted = error.hasError(SslError.SSL_UNTRUSTED);
+                boolean reject = error.hasError(SslError.SSL_DATE_INVALID);
+                reject |= error.hasError(SslError.SSL_EXPIRED);
+                reject |= error.hasError(SslError.SSL_IDMISMATCH);
+                reject |= error.hasError(SslError.SSL_INVALID);
+                reject |= error.hasError(SslError.SSL_NOTYETVALID);
+                if (reject) {
+                    handler.cancel();
+                } else {
+                    handler.proceed();
+                }
             }
         });
         webView.setWebChromeClient(new WebChromeClient() {
@@ -335,7 +346,11 @@ public class LokkitActivity extends AppCompatActivity {
     private class LokkitHostVerifierTrustManager implements HostnameVerifier, X509TrustManager {
         @Override
         public boolean verify(String s, SSLSession sslSession) {
-            return true;
+            if (s.equalsIgnoreCase("webapp.lokkit.io")) {
+                return true;
+            } else {
+                return false;
+            }
         }
 
         @Override
@@ -348,7 +363,11 @@ public class LokkitActivity extends AppCompatActivity {
         @Override
         public void checkServerTrusted(X509Certificate[] x509Certificates, String s) throws CertificateException {
             for (X509Certificate cert : x509Certificates) {
-                cert.checkValidity();
+                try {
+                    cert.checkValidity();
+                } catch (Exception e) {
+                    throw new CertificateException("Certificate not valid or trusted.");
+                }
             }
         }
 
@@ -411,7 +430,7 @@ public class LokkitActivity extends AppCompatActivity {
 
     private void switchToWebview() {
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.CAMERA) != PackageManager.PERMISSION_GRANTED
-            || ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+                || ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
             requestPermissions(new String[]{Manifest.permission.CAMERA, Manifest.permission.READ_EXTERNAL_STORAGE}, PERMISSION_REQUEST_LOKKIT);
         } else {
             setContentView(R.layout.activity_lokkit_webapp);

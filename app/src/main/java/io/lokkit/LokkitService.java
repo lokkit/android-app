@@ -31,13 +31,13 @@ public class LokkitService extends Service {
     /*private final static Collection<String> peers = Collections.unmodifiableCollection(Arrays.asList(
             "enode://288b97262895b1c7ec61cf314c2e2004407d0a5dc77566877aad1f2a36659c8b698f4b56fd06c4a0c0bf007b4cfb3e7122d907da3b005fa90e724441902eb19e@192.168.43.166:30303",
             "enode://5f74d479eee44164e1b884fb3e05c22fd3177f990ceed45e03cf1058aab1619ed88e4f0d9feef35c7c4c9b2098735c75a00bade50f9137606725f99f6853cea7@192.168.43.166:30308",
-            "enode://0d1253bb5f62a0ea42e312d9b352abf1742ca2b060b1f5b1e401d7e39fbd8081a04b8e060ef3430d0382e08c74891d345189f3fe64292f1efbcef4ac65ea8c7c@192.168.43.166:30305"));
-*/
+            "enode://0d1253bb5f62a0ea42e312d9b352abf1742ca2b060b1f5b1e401d7e39fbd8081a04b8e060ef3430d0382e08c74891d345189f3fe64292f1efbcef4ac65ea8c7c@192.168.43.166:30305"));*/
 
-    private final static Collection<String> peers = Collections.unmodifiableCollection(Arrays.asList(
+
+    /*private final static Collection<String> peers = Collections.unmodifiableCollection(Arrays.asList(
             "enode://5f74d479eee44164e1b884fb3e05c22fd3177f990ceed45e03cf1058aab1619ed88e4f0d9feef35c7c4c9b2098735c75a00bade50f9137606725f99f6853cea7@192.168.0.68:30308",
             "enode://288b97262895b1c7ec61cf314c2e2004407d0a5dc77566877aad1f2a36659c8b698f4b56fd06c4a0c0bf007b4cfb3e7122d907da3b005fa90e724441902eb19e@192.168.0.68:30303"));
-
+*/
     private static final String TAG = "LokkitService";
     private static WeakReference<LokkitService> weakService;
     private Web3Bridge web3;
@@ -222,12 +222,14 @@ public class LokkitService extends Service {
 
         String startResult = Statusgo.StartNode(getNodeConfig().toString());
         Log.d(TAG, startResult);
-        for (String peer : peers) {
+        /*for (String peer : peers) {
             //Log.d(TAG, Statusgo.AddPeer(peer));
             String bootNode = "{\"jsonrpc\":\"2.0\",\"id\":7,\"method\":\"admin_addPeer\",\"params\":[\"" + peer + "\"]}";
             String result = web3.sendRequest("http://localhost:8545", bootNode);
+            if (result == null)
+                result = "";
             Log.w(TAG, result);
-        }
+        }*/
         Log.d(TAG, Statusgo.StartNodeRPCServer());
 
         if (getMnemonic() == null
